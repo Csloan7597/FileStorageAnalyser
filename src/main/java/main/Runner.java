@@ -40,8 +40,8 @@ public class Runner {
 
         // Read in the 'analyser' tokens and create the analyser list
         List<TreeAnalyser> tas = new ArrayList<>();
-        for (String s : analysers.split(",")) {
-            switch (s.toLowerCase().trim()) {
+        Arrays.stream(analysers.split(",")).map(s -> s.toLowerCase().trim()).forEach(s -> {
+            switch (s) {
                 // Add other matching cases here and they drop down
                 case "filetypecount":
                     tas.add(new FileTypeCountAnalyser(tree, path));
@@ -51,28 +51,28 @@ public class Runner {
                     break;
                 // TODO match on class type using reflection
             }
-        }
+        });
 
         // Run the analyses as threads
         Map<TreeAnalyser, Thread> threads = new HashMap<>();
-        for (TreeAnalyser analyser : tas) {
+        tas.forEach( analyser -> {
             Thread t = new Thread(new TreeAnalyserRunnable(analyser));
             threads.put(analyser, t);
             t.start();
-        }
+        });
 
         // Wait for all threads to finish, add to a list of pdf streams
         List<ByteArrayOutputStream> pdfStreams = new ArrayList<>();
-        for (AbstractMap.Entry<TreeAnalyser, Thread> entry : threads.entrySet()) {
+        threads.forEach((analyser, thread) -> {
             try {
-                entry.getValue().join();
-                pdfStreams.add(entry.getKey().generatePdfReport());
+                thread.join();
+                pdfStreams.add(analyser.generatePdfReport());
             } catch (InterruptedException e) {
                 System.err.println("Interrupted Exception");
             } catch (PdfGenerationException p) {
-                System.err.println("Error generating pdf for: " + entry.getKey().getAnalysisName());
+                System.err.println("Error generating pdf for: " + analyser.getAnalysisName());
             }
-        }
+        });
 
         // Merge and print document
         PDFMergerUtility mergeUtil = new PDFMergerUtility();
