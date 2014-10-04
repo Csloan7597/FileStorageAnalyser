@@ -1,10 +1,13 @@
 package graph.analysis;
 
 import edu.uci.ics.jung.graph.DelegateTree;
+import exceptions.AnalysisException;
+import exceptions.PdfGenerationException;
 import graph.Edge;
 import graph.FileNode;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**
@@ -27,13 +30,6 @@ public abstract class TreeAnalyser {
 
     public abstract void doAnalyse() throws AnalysisException;
 
-    public abstract PDDocument generatePdfReport() throws IOException;
-
-    public static class AnalysisException extends Exception {
-        public AnalysisException() { super(); }
-        public AnalysisException(String message) { super(message); }
-        public AnalysisException(String message, Throwable cause) { super(message, cause); }
-        public AnalysisException(Throwable cause) { super(cause); }
-    }
+    public abstract ByteArrayOutputStream generatePdfReport() throws PdfGenerationException;
 
 }

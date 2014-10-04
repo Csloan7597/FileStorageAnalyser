@@ -1,13 +1,26 @@
 package graph.analysis;
 
 import edu.uci.ics.jung.graph.DelegateTree;
+import exceptions.AnalysisException;
+import exceptions.PdfGenerationException;
 import graph.Edge;
 import graph.FileNode;
+import net.sf.dynamicreports.jasper.builder.JasperReportBuilder;
+import net.sf.dynamicreports.report.builder.DynamicReports;
+import net.sf.dynamicreports.report.builder.ReportBuilder;
+import net.sf.dynamicreports.report.builder.column.TextColumnBuilder;
+import net.sf.dynamicreports.report.builder.component.Components;
+import net.sf.dynamicreports.report.datasource.DRDataSource;
+import net.sf.dynamicreports.report.exception.DRException;
+import net.sf.jasperreports.engine.JRDataSource;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.edit.PDPageContentStream;
+import utils.DynamicReportStylesHelper;
 import utils.PDFUtils;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 
@@ -22,15 +35,7 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
 
     private String name = "File Type Count Analysis";
     private String desc = "Counts how many files of each type are in the given filesystem";
-
-    private String reportContentStart = "Title:" + PDFUtils.getNewLineString() + " %s. " + PDFUtils.getNewLineString(2) +
-            "Description:" + PDFUtils.getNewLineString() + " %s." + PDFUtils.getNewLineString(2) +
-            "Results:" + PDFUtils.getNewLineString() +
-            "-------------------------------------------------" + PDFUtils.getNewLineString();
-
-    private String reportContentTemplate = "There are %d files of type %s in path %s." + PDFUtils.getNewLineString();
-
-    private String reportContentAfter = PDFUtils.getNewLineString() + "-------------------------------------------------";
+    private String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
 
     public FileTypeCountAnalyser(DelegateTree<FileNode, Edge> tree, String path) {
         super(tree, path);
@@ -77,28 +82,40 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
     }
 
     @Override
-    public PDDocument generatePdfReport() throws IOException {
-        PDDocument doc = new PDDocument();
-        PDPage page = new PDPage();
-        doc.addPage(page);
-
-        PDPageContentStream content = new PDPageContentStream(doc, page);
-        PDFUtils.setFont(content);
-
-        content.beginText();
-        StringBuilder bs = new StringBuilder();
-        bs.append(String.format(reportContentStart, name, desc));
-        for (AbstractMap.Entry<String, Integer> entry : fileTypeCounts.entrySet()) {
-            bs.append(String.format(reportContentTemplate, entry.getValue(), entry.getKey(), path));
+    public ByteArrayOutputStream generatePdfReport() throws PdfGenerationException {
+        try {
+            TextColumnBuilder<String> fileTypeCol =
+                    DynamicReports.col.column("File Type", "file_type", DynamicReports.type.stringType());
+            TextColumnBuilder<Integer>fileCountCol =
+                    DynamicReports.col.column("File Count", "file_count", DynamicReports.type.integerType());
+            
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            ReportBuilder<JasperReportBuilder> report = DynamicReports.report()
+                    .setColumnTitleStyle(DynamicReportStylesHelper.columnTitleStyle())
+                    .title(Components.text(String.format(reportTitleAsHtml, name, path, desc)).
+                            setStyle(DynamicReportStylesHelper.styledMarkupStyle()))
+                    .columns(//add columns
+                        fileTypeCol, fileCountCol
+                    )
+                    .setDataSource(createDataSource())
+                    .summary(
+                            DynamicReports.cht.pieChart()
+                                    .setTitle("Pie chart")
+                                    .setStyle(DynamicReportStylesHelper.boldStyle())
+                                    .setKey(fileTypeCol)
+                                    .series(DynamicReports.cht.serie(fileCountCol)))
+                    .toPdf(outputStream);
+            return outputStream;
+        } catch (DRException e) {
+            System.err.println("Error generating PDF" + e.getMessage());
+            throw new PdfGenerationException("Error generating PDF with DynamicReports", e);
         }
-        bs.append(reportContentAfter);
-
-        System.out.println(bs.toString());
-
-        PDFUtils.writeWrappedText(page, content, bs.toString(), PDFUtils.getMargin(), 700);
-        content.endText();
-        content.close();
-
-        return doc;
     }
+
+    private JRDataSource createDataSource() {
+        DRDataSource dataSource = new DRDataSource("file_type", "file_count");
+        fileTypeCounts.forEach( (fileType, count) -> dataSource.add(fileType, count));
+        return dataSource;
+    }
+
 }

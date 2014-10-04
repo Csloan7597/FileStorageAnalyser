@@ -1,5 +1,7 @@
 package graph.analysis;
 
+import exceptions.AnalysisException;
+
 /**
  * Created by conor on 09/09/2014.
  */
@@ -19,7 +21,7 @@ public class TreeAnalyserRunnable implements Runnable {
     public void run() {
         try {
             analyser.doAnalyse();
-        } catch (TreeAnalyser.AnalysisException e) {
+        } catch (AnalysisException e) {
             e.printStackTrace();
         }
     }
