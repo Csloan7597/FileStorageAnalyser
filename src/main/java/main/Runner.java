@@ -5,8 +5,6 @@ import exceptions.AnalysisException;
 import exceptions.PdfGenerationException;
 import graph.Edge;
 import graph.FileNode;
-import graph.analysis.FileCountAnalyser;
-import graph.analysis.FileTypeCountAnalyser;
 import graph.analysis.TreeAnalyser;
 import graph.analysis.TreeAnalyserRunnable;
 import graph.factory.JungGraphFactory;
@@ -16,6 +14,7 @@ import org.apache.pdfbox.util.PDFMergerUtility;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.FileSystems;
 import java.util.*;
 
@@ -40,16 +39,24 @@ public class Runner {
 
         // Read in the 'analyser' tokens and create the analyser list
         List<TreeAnalyser> tas = new ArrayList<>();
-        Arrays.stream(analysers.split(",")).map(s -> s.toLowerCase().trim()).forEach(s -> {
-            switch (s) {
-                // Add other matching cases here and they drop down
-                case "filetypecount":
-                    tas.add(new FileTypeCountAnalyser(tree, path));
-                    break;
-                case "filecount":
-                    tas.add(new FileCountAnalyser(tree, path));
-                    break;
-                // TODO match on class type using reflection
+        Class<?>[] expectedConstructorParams = new Class<?>[]{DelegateTree.class, String.class};
+        Arrays.stream(analysers.split(",")).forEach(s -> {
+            try {
+                Class<?> clazz = Class.forName(s);
+                Arrays.stream(clazz.getConstructors()).forEach(constructor -> {
+                    if (constructor.getParameterCount() == 2 &&
+                        Arrays.equals(expectedConstructorParams, constructor.getParameterTypes())) {
+                        try {
+                            tas.add((TreeAnalyser) constructor.newInstance(tree, path));
+                            System.out.println("Preparing to run: " + s);
+                        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                            System.err.println("Could not instantiate: " + s + ".. ensure this class implements " +
+                                    "the TreeAnalyser interface & has the correct constructor. skipping.");
+                        }
+                    }
+                });
+            } catch (ClassNotFoundException e) {
+                System.err.println("Class: " + s + "not found. make sure you have typed the name correctly. skipping.");
             }
         });
 
