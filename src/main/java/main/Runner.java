@@ -25,7 +25,7 @@ import java.util.*;
 public class Runner {
 
     public Runner(String path, String logPath, List<String> ignores, List<String> typeFilters, int maxDepth,
-                  String analysers) throws IOException, AnalysisException {
+                  String analysers)  {
 
         // Set correct options & create a factory
         JungGraphFactory.Options options = new JungGraphFactory.Options.Builder()
@@ -81,7 +81,7 @@ public class Runner {
         try {
             mergeUtil.setDestinationFileName(logPath);
             mergeUtil.mergeDocuments();
-        } catch (COSVisitorException e) {
+        } catch (COSVisitorException | IOException e) {
             System.err.println("Error merging the document - sorry!");
         }
 
@@ -99,7 +99,7 @@ public class Runner {
      * @throws IOException
      * @throws AnalysisException
      */
-    public static void main(String[] args) throws IOException, AnalysisException {
+    public static void main(String[] args) {
 
         String path = null;
         String logPath = null;
