@@ -6,7 +6,7 @@ import net.sf.dynamicreports.report.constant.Markup;
 
 import java.awt.*;
 
-import static net.sf.dynamicreports.report.builder.DynamicReports.*;
+import static net.sf.dynamicreports.report.builder.DynamicReports.stl;
 
 /**
  * Created by conor on 04/10/2014.
@@ -19,7 +19,9 @@ public class DynamicReportStylesHelper {
 
     public static StyleBuilder boldStyle() {
         return stl.style().bold();
-    };
+    }
+
+    ;
 
     public static StyleBuilder boldCenteredStyle() {
         return stl.style(boldStyle())

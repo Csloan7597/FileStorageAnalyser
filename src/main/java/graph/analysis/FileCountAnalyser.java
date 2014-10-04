@@ -5,9 +5,7 @@ import exceptions.AnalysisException;
 import exceptions.PdfGenerationException;
 import graph.Edge;
 import graph.FileNode;
-import net.sf.dynamicreports.jasper.builder.JasperReportBuilder;
 import net.sf.dynamicreports.report.builder.DynamicReports;
-import net.sf.dynamicreports.report.builder.ReportBuilder;
 import net.sf.dynamicreports.report.builder.component.Components;
 import net.sf.dynamicreports.report.datasource.DRDataSource;
 import net.sf.dynamicreports.report.exception.DRException;
@@ -31,6 +29,7 @@ public class FileCountAnalyser extends TreeAnalyser {
     private String desc = "Counts how many files (not folders) are in the given filesystem";
 
     private String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
+
     public FileCountAnalyser(DelegateTree<FileNode, Edge> tree, String path) {
         super(tree, path);
     }
@@ -60,7 +59,7 @@ public class FileCountAnalyser extends TreeAnalyser {
         Queue<FileNode> tq = new LinkedList<>();
         tq.add(tree.getRoot());
 
-        while(!tq.isEmpty()) {
+        while (!tq.isEmpty()) {
             FileNode n = tq.poll();
             if (!n.isDirectory()) {
                 fileCount++;
@@ -74,7 +73,7 @@ public class FileCountAnalyser extends TreeAnalyser {
     public ByteArrayOutputStream generatePdfReport() throws PdfGenerationException {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            ReportBuilder<JasperReportBuilder> report = DynamicReports.report()
+            DynamicReports.report()
                     .setColumnTitleStyle(DynamicReportStylesHelper.columnTitleStyle())
                     .title(Components.text(String.format(reportTitleAsHtml, name, path, desc)).
                             setStyle(DynamicReportStylesHelper.styledMarkupStyle()))

@@ -5,10 +5,8 @@ import exceptions.AnalysisException;
 import exceptions.PdfGenerationException;
 import graph.Edge;
 import graph.FileNode;
-import org.apache.pdfbox.pdmodel.PDDocument;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 
 /**
  * Created by conor on 07/09/2014.

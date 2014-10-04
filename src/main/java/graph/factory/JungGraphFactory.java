@@ -23,6 +23,7 @@ public class JungGraphFactory {
         fs.getRootDirectories().forEach((dir) -> buildGraphFromRoot(dir, t));
         return t;
     }
+
     public DelegateTree<FileNode, Edge> generateFsGraph(String rootPath) {
         DelegateTree<FileNode, Edge> t = new DelegateTree<>();
         buildGraphFromRoot(new File(rootPath), t);
@@ -30,8 +31,8 @@ public class JungGraphFactory {
     }
 
     /**
-     *  Iterative function to generate a tree structure from a given filesystem root.
-     *  Uses a queue and passes pairs, containing node parent and current file to be processed.
+     * Iterative function to generate a tree structure from a given filesystem root.
+     * Uses a queue and passes pairs, containing node parent and current file to be processed.
      *
      * @param rootFile
      */
@@ -45,10 +46,16 @@ public class JungGraphFactory {
             File currentFile = currentPair.getRight();
             FileNode n = new FileNode(currentFile);
 
-            if (parent != null && tree.getDepth(parent) == options.getMaxDepth()) { break; };
+            if (parent != null && tree.getDepth(parent) == options.getMaxDepth()) {
+                break;
+            }
+            ;
 
-            if (parent == null) { tree.setRoot(n); }
-            else { tree.addChild(new Edge(), parent, n); }
+            if (parent == null) {
+                tree.setRoot(n);
+            } else {
+                tree.addChild(new Edge(), parent, n);
+            }
 
             if (currentFile.isDirectory() && currentFile.listFiles() != null && currentFile.listFiles().length > 0) {
                 Arrays.asList(currentFile.listFiles()).forEach((child) -> fileQueue.add(new ImmutablePair<>(n, child)));
@@ -57,7 +64,8 @@ public class JungGraphFactory {
     }
 
     /**
-     *  Overload to convert path to file.
+     * Overload to convert path to file.
+     *
      * @param rootPath
      */
     private void buildGraphFromRoot(Path rootPath, DelegateTree<FileNode, Edge> dg) {
@@ -68,10 +76,12 @@ public class JungGraphFactory {
         this.options = options;
     }
 
-    public JungGraphFactory() { }
+    public JungGraphFactory() {
+    }
 
     /**
      * Set options for the FS traversal.
+     *
      * @param o options
      */
     public void setOptions(Options o) {
@@ -98,20 +108,30 @@ public class JungGraphFactory {
             }
 
             public Builder typeFilters(List<String> filters) {
-                if (filters != null) { this.typeFilters = filters; }
+                if (filters != null) {
+                    this.typeFilters = filters;
+                }
                 return this;
             }
+
             public Builder typeFilters(String... filters) {
-                if (filters != null) { this.typeFilters = Arrays.asList(filters); }
+                if (filters != null) {
+                    this.typeFilters = Arrays.asList(filters);
+                }
                 return this;
             }
 
             public Builder ignoreList(List<String> ignores) {
-                if (ignores != null) { this.ignoreList = ignores; }
+                if (ignores != null) {
+                    this.ignoreList = ignores;
+                }
                 return this;
             }
+
             public Builder ignoreList(String... ignores) {
-                if (ignores != null) { this.typeFilters = Arrays.asList(ignores); }
+                if (ignores != null) {
+                    this.typeFilters = Arrays.asList(ignores);
+                }
                 return this;
             }
 
@@ -123,9 +143,11 @@ public class JungGraphFactory {
         public int getMaxDepth() {
             return this.maxDepth;
         }
+
         public List<String> getTypeFilters() {
             return this.typeFilters;
         }
+
         public List<String> getIgnoreList() {
             return this.ignoreList;
         }

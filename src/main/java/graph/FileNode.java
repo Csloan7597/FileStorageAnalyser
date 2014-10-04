@@ -37,7 +37,9 @@ public class FileNode {
         this.fileType = fileType;
     }
 
-    public String getFileType() { return this.fileType; }
+    public String getFileType() {
+        return this.fileType;
+    }
 
     public void setFileSize(long fileSize) {
         this.fileSize = fileSize;

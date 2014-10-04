@@ -11,7 +11,6 @@ import graph.analysis.TreeAnalyser;
 import graph.analysis.TreeAnalyserRunnable;
 import graph.factory.JungGraphFactory;
 import org.apache.pdfbox.exceptions.COSVisitorException;
-import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.util.PDFMergerUtility;
 
 import java.io.ByteArrayInputStream;
@@ -19,7 +18,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Created by conor on 06/09/2014.
@@ -35,18 +33,22 @@ public class Runner {
                 .typeFilters(typeFilters)
                 .maxDepth(maxDepth).build();
         JungGraphFactory factory = new JungGraphFactory(options);
-                                                                
+
         // Use the configured factory to read in the filesystem & create a graph
         DelegateTree<FileNode, Edge> tree = (path == null) ?
-                 factory.generateFsGraph(FileSystems.getDefault()) : factory.generateFsGraph(path);
+                factory.generateFsGraph(FileSystems.getDefault()) : factory.generateFsGraph(path);
 
         // Read in the 'analyser' tokens and create the analyser list
         List<TreeAnalyser> tas = new ArrayList<>();
         for (String s : analysers.split(",")) {
             switch (s.toLowerCase().trim()) {
                 // Add other matching cases here and they drop down
-                case "filetypecount" : tas.add(new FileTypeCountAnalyser(tree, path)); break;
-                case "filecount" :  tas.add(new FileCountAnalyser(tree, path)); break;
+                case "filetypecount":
+                    tas.add(new FileTypeCountAnalyser(tree, path));
+                    break;
+                case "filecount":
+                    tas.add(new FileCountAnalyser(tree, path));
+                    break;
                 // TODO match on class type using reflection
             }
         }
@@ -74,7 +76,7 @@ public class Runner {
 
         // Merge and print document
         PDFMergerUtility mergeUtil = new PDFMergerUtility();
-        pdfStreams.forEach( (pdfStream) -> mergeUtil.addSource(new ByteArrayInputStream(pdfStream.toByteArray())));
+        pdfStreams.forEach((pdfStream) -> mergeUtil.addSource(new ByteArrayInputStream(pdfStream.toByteArray())));
 
         try {
             mergeUtil.setDestinationFileName(logPath);
@@ -89,9 +91,9 @@ public class Runner {
 
     /**
      * USAGE:
-     *
-     *  run --path <path> --maxDepth <max> --ignore<commaseplist> --typeFilter<commaseplist> --logpath <path>
-     *      --analysers <comseplist>
+     * <p>
+     * run --path <path> --maxDepth <max> --ignore<commaseplist> --typeFilter<commaseplist> --logpath <path>
+     * --analysers <comseplist>
      *
      * @param args
      * @throws IOException
@@ -107,15 +109,28 @@ public class Runner {
         List<String> typeFilters = null;
 
         // Read args
-        for (int i = 0; i < args.length-1; i++) {
+        for (int i = 0; i < args.length - 1; i++) {
             switch (args[i].toLowerCase()) {
-                case "--path" : path = args[i+1]; break;
-                case "--maxdepth" : maxDepth = Integer.parseInt(args[i+1]); break;
-                case "--ignore" : ignores = Arrays.asList(args[i + 1].split(",")); break;
-                case "--typefilter" : typeFilters = Arrays.asList(args[i + 1].split(",")); break;
-                case "--logpath" : logPath = args[i + 1]; break;
-                case "--analysers" : analysers = args [i + 1]; break;
-                default : break;
+                case "--path":
+                    path = args[i + 1];
+                    break;
+                case "--maxdepth":
+                    maxDepth = Integer.parseInt(args[i + 1]);
+                    break;
+                case "--ignore":
+                    ignores = Arrays.asList(args[i + 1].split(","));
+                    break;
+                case "--typefilter":
+                    typeFilters = Arrays.asList(args[i + 1].split(","));
+                    break;
+                case "--logpath":
+                    logPath = args[i + 1];
+                    break;
+                case "--analysers":
+                    analysers = args[i + 1];
+                    break;
+                default:
+                    break;
             }
         }
 
