@@ -38,7 +38,7 @@ public class JungGraphFactory {
      */
     private void buildGraphFromRoot(File rootFile, DelegateTree<FileNode, Edge> tree) {
         final Queue<ImmutablePair<FileNode, File>> fileQueue = new LinkedList<>();
-        fileQueue.add(new ImmutablePair<FileNode, File>(null, rootFile));
+        fileQueue.add(new ImmutablePair<>(null, rootFile));
 
         while (!fileQueue.isEmpty()) {
             ImmutablePair<FileNode, File> currentPair = fileQueue.poll();
@@ -46,16 +46,8 @@ public class JungGraphFactory {
             File currentFile = currentPair.getRight();
             FileNode n = new FileNode(currentFile);
 
-            if (parent != null && tree.getDepth(parent) == options.getMaxDepth()) {
-                break;
-            }
-            ;
-
-            if (parent == null) {
-                tree.setRoot(n);
-            } else {
-                tree.addChild(new Edge(), parent, n);
-            }
+            if (parent != null && tree.getDepth(parent) == options.getMaxDepth()) { break; }
+            if (parent == null) { tree.setRoot(n); } else { tree.addChild(new Edge(), parent, n); }
 
             if (currentFile.isDirectory() && currentFile.listFiles() != null && currentFile.listFiles().length > 0) {
                 Arrays.asList(currentFile.listFiles()).forEach((child) -> fileQueue.add(new ImmutablePair<>(n, child)));

@@ -21,8 +21,6 @@ public class DynamicReportStylesHelper {
         return stl.style().bold();
     }
 
-    ;
-
     public static StyleBuilder boldCenteredStyle() {
         return stl.style(boldStyle())
                 .setHorizontalAlignment(HorizontalAlignment.CENTER);
