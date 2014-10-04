@@ -12,14 +12,9 @@ import net.sf.dynamicreports.report.builder.component.Components;
 import net.sf.dynamicreports.report.datasource.DRDataSource;
 import net.sf.dynamicreports.report.exception.DRException;
 import net.sf.jasperreports.engine.JRDataSource;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.edit.PDPageContentStream;
 import utils.DynamicReportStylesHelper;
-import utils.PDFUtils;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
 
