@@ -145,7 +145,7 @@ public class Runner {
         // TODO validate args
 
         // Run
-        Runner r = new Runner(path, logPath, ignores, typeFilters, maxDepth, analysers);
+        new Runner(path, logPath, ignores, typeFilters, maxDepth, analysers);
     }
 
 }

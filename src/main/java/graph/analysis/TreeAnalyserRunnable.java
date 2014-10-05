@@ -7,7 +7,7 @@ import exceptions.AnalysisException;
  */
 public class TreeAnalyserRunnable implements Runnable {
 
-    private TreeAnalyser analyser;
+    private final TreeAnalyser analyser;
 
     public TreeAnalyserRunnable(TreeAnalyser analyser) {
         this.analyser = analyser;

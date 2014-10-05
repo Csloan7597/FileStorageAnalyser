@@ -8,8 +8,8 @@ import java.io.File;
 public class FileNode {
 
     private String path;
-    private String id;
-    private boolean isDirectory;
+    private final String id;
+    private final boolean isDirectory;
     private String fileType;
     private long fileSize;
 

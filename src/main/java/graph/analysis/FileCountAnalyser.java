@@ -25,10 +25,10 @@ public class FileCountAnalyser extends TreeAnalyser {
     private int fileCount = 0;
     private String path;
 
-    private String name = "File Count Analysis";
-    private String desc = "Counts how many files (not folders) are in the given filesystem";
+    private final String name = "File Count Analysis";
+    private final String desc = "Counts how many files (not folders) are in the given filesystem";
 
-    private String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
+    private final String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
 
     public FileCountAnalyser(DelegateTree<FileNode, Edge> tree, String path) {
         super(tree, path);
@@ -64,7 +64,7 @@ public class FileCountAnalyser extends TreeAnalyser {
             if (!n.isDirectory()) {
                 fileCount++;
             } else {
-                tree.getChildren(n).forEach((node) -> tq.add(node));
+                tree.getChildren(n).forEach(tq::add);
             }
         }
     }

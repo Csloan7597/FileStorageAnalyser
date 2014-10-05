@@ -49,8 +49,9 @@ public class JungGraphFactory {
             if (parent != null && tree.getDepth(parent) == options.getMaxDepth()) { break; }
             if (parent == null) { tree.setRoot(n); } else { tree.addChild(new Edge(), parent, n); }
 
-            if (currentFile.isDirectory() && currentFile.listFiles() != null && currentFile.listFiles().length > 0) {
-                Arrays.asList(currentFile.listFiles()).forEach((child) -> fileQueue.add(new ImmutablePair<>(n, child)));
+            File[] files = currentFile.listFiles();
+            if (currentFile.isDirectory() && files != null && files.length > 0) {
+                Arrays.stream(files).forEach((child) -> fileQueue.add(new ImmutablePair<>(n, child)));
             }
         }
     }
@@ -85,9 +86,9 @@ public class JungGraphFactory {
      * For example, a max depth or list of ignore strings.
      */
     public static class Options {
-        private int maxDepth;
-        private List<String> typeFilters;
-        private List<String> ignoreList;
+        private final int maxDepth;
+        private final List<String> typeFilters;
+        private final List<String> ignoreList;
 
         public static class Builder {
             private int maxDepth = 1000;

@@ -25,12 +25,12 @@ import java.util.Queue;
 public class FileTypeCountAnalyser extends TreeAnalyser {
 
     private DelegateTree<FileNode, Edge> tree;
-    private Map<String, Integer> fileTypeCounts = new HashMap<>();
     private String path;
 
-    private String name = "File Type Count Analysis";
-    private String desc = "Counts how many files of each type are in the given filesystem";
-    private String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
+    private final Map<String, Integer> fileTypeCounts = new HashMap<>();
+    private final String name = "File Type Count Analysis";
+    private final String desc = "Counts how many files of each type are in the given filesystem";
+    private final String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
 
     public FileTypeCountAnalyser(DelegateTree<FileNode, Edge> tree, String path) {
         super(tree, path);
@@ -71,7 +71,8 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
             }
 
             if (n.isDirectory()) {
-                tree.getChildren(n).forEach((node) -> tq.add(node));
+                //tree.getChildren(n).forEach((node) -> tq.add(node));
+                tq.addAll(tree.getChildren(n));
             }
         }
     }
@@ -109,7 +110,7 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
 
     private JRDataSource createDataSource() {
         DRDataSource dataSource = new DRDataSource("file_type", "file_count");
-        fileTypeCounts.forEach((fileType, count) -> dataSource.add(fileType, count));
+        fileTypeCounts.forEach(dataSource::add);
         return dataSource;
     }
 
