@@ -18,6 +18,9 @@ import java.util.Queue;
 
 /**
  * Created by conor on 07/09/2014.
+ *
+ * Tree analyser which simply counts the number of files in a given path.
+ * This does not include directories.
  */
 public class FileCountAnalyser extends TreeAnalyser {
 
@@ -90,6 +93,10 @@ public class FileCountAnalyser extends TreeAnalyser {
         }
     }
 
+    /**
+     * Generate the data into the PDF report being generated.
+     * @return data source to inject into PDF report
+     */
     private JRDataSource createDataSource() {
         DRDataSource dataSource = new DRDataSource("path", "file_count");
         dataSource.add(path, fileCount);

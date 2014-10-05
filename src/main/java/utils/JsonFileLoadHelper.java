@@ -17,10 +17,11 @@ public class JsonFileLoadHelper {
         // Prevent instantiation
     }
 
-    public static Map<String, Object> loadJsonFile(String path) throws FileNotFoundException, IOException  {
+    public static Map<String, Object> loadJsonFile(String path) throws FileNotFoundException, IOException {
         return new ObjectMapper().readValue(
                 new File(path),
-                new TypeReference<Map<String, Object>>() { });
+                new TypeReference<Map<String, Object>>() {
+                });
     }
 
 }

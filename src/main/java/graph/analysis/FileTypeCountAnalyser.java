@@ -21,6 +21,9 @@ import java.util.Queue;
 
 /**
  * Created by conor on 07/09/2014.
+ *
+ * Tree analyser which, for a given filesystem path, counts the occurrence of each different type of file found.
+ * This is then compiled into a table and other formats.
  */
 public class FileTypeCountAnalyser extends TreeAnalyser {
 
@@ -107,6 +110,10 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
         }
     }
 
+    /**
+     * Generate the data into the PDF report being generated.
+     * @return data source to inject into PDF report
+     */
     private JRDataSource createDataSource() {
         DRDataSource dataSource = new DRDataSource("file_type", "file_count");
         fileTypeCounts.forEach(dataSource::add);

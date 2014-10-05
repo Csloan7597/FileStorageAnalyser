@@ -1,7 +1,6 @@
 package main;
 
 import edu.uci.ics.jung.graph.DelegateTree;
-import exceptions.AnalysisException;
 import exceptions.PdfGenerationException;
 import graph.Edge;
 import graph.FileNode;
@@ -23,9 +22,25 @@ import java.util.stream.Collectors;
 
 /**
  * Created by conor on 06/09/2014.
+ *
+ * Main class of this project. Takes command line args and performs the following operations:
+ *
+ * - Load configuration
+ * - Generate tree structure from given path
+ * - Start analyses as separate threads working on the same tree structure in memory
+ * - Wait for analyses to finish
+ * - Generate reports for each analysis (as PDF)
+ * - Merge PDF reports into one master report
+ * - Write master report to the specified file
+ *
+ * The project can be called with a config file or with just arguments, see docs for more details.
  */
 public class Runner {
 
+    /**
+     * Run with a config model, containing all the required information to run the analyses.
+     * @param config configuration for this run
+     */
     public Runner(Map<String, Object> config) {
         // Set correct options & create a factory
         JungGraphFactory.Options options = new JungGraphFactory.Options.Builder()
@@ -55,13 +70,23 @@ public class Runner {
         waitForAnalyserThreadsFinish(threads);
 
         // Get PDFs and print them
-        printMergedPdf(logPath,  getPdfStreamsFromAnalysers(threads));
+        printMergedPdf(logPath, getPdfStreamsFromAnalysers(threads));
 
         System.out.println("Finished! Your report is ready at path: " + logPath);
     }
 
+    /**
+     * For when the application is run with limited command line options. Specific pieces of config are
+     * passed here, enough to run the application in its simplest form.
+     * @param path The root path to analyse files from
+     * @param logPath The path to write the resulting PDF report to
+     * @param ignores A list of files/types to ignore
+     * @param typeFilters A list of types to be the only ones included, the opposite of ignores
+     * @param maxDepth The maximum tree depth to delve when traversing files in the filesystem
+     * @param analysers A list of strings representing java class files, which perform analysis
+     */
     public Runner(String path, String logPath, List<String> ignores, List<String> typeFilters, int maxDepth,
-                  String analysers)  {
+                  String analysers) {
 
         // Set correct options & create a factory
         JungGraphFactory.Options options = new JungGraphFactory.Options.Builder()
@@ -89,14 +114,16 @@ public class Runner {
         System.out.println("Finished! Your report is ready at path: " + logPath);
     }
 
+    /**
+     * Given a number of threads containing analysers, generate reports as PDF and return these as a list.
+     * @param threads Map of Analyser to Thread
+     * @return the pdf reports
+     */
     List<ByteArrayOutputStream> getPdfStreamsFromAnalysers(Map<TreeAnalyser, Thread> threads) {
         List<ByteArrayOutputStream> pdfStreams = new ArrayList<>();
         threads.forEach((analyser, thread) -> {
             try {
-                thread.join();
                 pdfStreams.add(analyser.generatePdfReport());
-            } catch (InterruptedException e) {
-                System.err.println("Interrupted Exception");
             } catch (PdfGenerationException p) {
                 System.err.println("Error generating pdf for: " + analyser.getAnalysisName());
             }
@@ -104,6 +131,12 @@ public class Runner {
         return pdfStreams;
     }
 
+    /**
+     * Given a specific path to write to and a number of streams, merges the streams into one PDF file and writes it
+     * to the filesystem.
+     * @param logPath The path to write the resulting PDF report to
+     * @param pdfStreams the PDF streams
+     */
     void printMergedPdf(String logPath, List<ByteArrayOutputStream> pdfStreams) {
         // Merge and print document
         PDFMergerUtility mergeUtil = new PDFMergerUtility();
@@ -117,6 +150,10 @@ public class Runner {
         }
     }
 
+    /**
+     * Given a number of threads / analysers, waits for every thread to finish.
+     * @param threads Map of Analyser to Thread
+     */
     void waitForAnalyserThreadsFinish(Map<TreeAnalyser, Thread> threads) {
         threads.forEach((analyser, thread) -> {
             try {
@@ -127,9 +164,15 @@ public class Runner {
         });
     }
 
+    /**
+     * Given a number of analysers, wraps each in a runnable, and runs it in a new thread. Also creates a map of
+     * analysers to the newly created thread.
+     * @param tas the analysers
+     * @return map of analyser to thread
+     */
     Map<TreeAnalyser, Thread> runAnalysersInParallel(List<TreeAnalyser> tas) {
         Map<TreeAnalyser, Thread> threads = new HashMap<>();
-        tas.forEach( analyser -> {
+        tas.forEach(analyser -> {
             Thread t = new Thread(new TreeAnalyserRunnable(analyser));
             threads.put(analyser, t);
             t.start();
@@ -137,6 +180,14 @@ public class Runner {
         return threads;
     }
 
+    /**
+     * Given a list of strings representing java classes, uses java reflection to load the specified classes, and
+     * instantiates these as tree analysers. Adds these to a list, which is then returned.
+     * @param path the file path to pass to tree analysers
+     * @param analysers the analyser package names
+     * @param tree the tree to pass to analysers
+     * @return the instantiated tree analysers
+     */
     List<TreeAnalyser> resolveAnalysers(String path, List<String> analysers, DelegateTree<FileNode, Edge> tree) {
         List<TreeAnalyser> tas = new ArrayList<>();
         Class<?>[] expectedConstructorParams = new Class<?>[]{DelegateTree.class, String.class};
