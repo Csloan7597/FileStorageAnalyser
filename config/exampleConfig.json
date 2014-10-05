@@ -11,7 +11,7 @@
 
     "maxDepth" : 10,
     "path" : "/Users/conor/Downloads/Coursework",
-    "logPath" : "logs/reporty.pdf",
+    "logPath" : "logs/report-new.pdf",
     "filterTypes" : [],
     "ignoreList" : []
 }
