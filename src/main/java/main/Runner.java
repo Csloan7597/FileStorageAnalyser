@@ -38,48 +38,16 @@ public class Runner {
                 factory.generateFsGraph(FileSystems.getDefault()) : factory.generateFsGraph(path);
 
         // Read in the 'analyser' tokens and create the analyser list
-        List<TreeAnalyser> tas = new ArrayList<>();
-        Class<?>[] expectedConstructorParams = new Class<?>[]{DelegateTree.class, String.class};
-        Arrays.stream(analysers.split(",")).forEach(s -> {
-            try {
-                Class<?> clazz = Class.forName(s);
-                Arrays.stream(clazz.getConstructors()).forEach(constructor -> {
-                    if (constructor.getParameterCount() == 2 &&
-                        Arrays.equals(expectedConstructorParams, constructor.getParameterTypes())) {
-                        try {
-                            tas.add((TreeAnalyser) constructor.newInstance(tree, path));
-                            System.out.println("Preparing to run: " + s);
-                        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                            System.err.println("Could not instantiate: " + s + ".. ensure this class implements " +
-                                    "the TreeAnalyser interface & has the correct constructor. skipping.");
-                        }
-                    }
-                });
-            } catch (ClassNotFoundException e) {
-                System.err.println("Class: " + s + "not found. make sure you have typed the name correctly. skipping.");
-            }
-        });
+        List<TreeAnalyser> tas = resolveAnalysers(path, Arrays.asList(analysers.split(",")), tree);
 
         // Run the analyses as threads
-        Map<TreeAnalyser, Thread> threads = new HashMap<>();
-        tas.forEach( analyser -> {
-            Thread t = new Thread(new TreeAnalyserRunnable(analyser));
-            threads.put(analyser, t);
-            t.start();
-        });
+        Map<TreeAnalyser, Thread> threads = runAnalysersInParallel(tas);
 
-        // Wait for all threads to finish, add to a list of pdf streams
-        List<ByteArrayOutputStream> pdfStreams = new ArrayList<>();
-        threads.forEach((analyser, thread) -> {
-            try {
-                thread.join();
-                pdfStreams.add(analyser.generatePdfReport());
-            } catch (InterruptedException e) {
-                System.err.println("Interrupted Exception");
-            } catch (PdfGenerationException p) {
-                System.err.println("Error generating pdf for: " + analyser.getAnalysisName());
-            }
-        });
+        // Wait for threads to finish
+        waitForAnalyserThreadsFinish(threads);
+
+        // Create list of pdf streams
+        List<ByteArrayOutputStream> pdfStreams = getPdfStreamsFromAnalysers(threads);
 
         // Merge and print document
         PDFMergerUtility mergeUtil = new PDFMergerUtility();
@@ -95,6 +63,66 @@ public class Runner {
         System.out.println("Finished! Your report is ready at path: " + logPath);
     }
 
+    List<ByteArrayOutputStream> getPdfStreamsFromAnalysers(Map<TreeAnalyser, Thread> threads) {
+        List<ByteArrayOutputStream> pdfStreams = new ArrayList<>();
+        threads.forEach((analyser, thread) -> {
+            try {
+                thread.join();
+                pdfStreams.add(analyser.generatePdfReport());
+            } catch (InterruptedException e) {
+                System.err.println("Interrupted Exception");
+            } catch (PdfGenerationException p) {
+                System.err.println("Error generating pdf for: " + analyser.getAnalysisName());
+            }
+        });
+        return pdfStreams;
+    }
+
+    void waitForAnalyserThreadsFinish(Map<TreeAnalyser, Thread> threads) {
+        threads.forEach((analyser, thread) -> {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                System.err.println("Interrupted Exception - Threading issue");
+            }
+        });
+    }
+
+    Map<TreeAnalyser, Thread> runAnalysersInParallel(List<TreeAnalyser> tas) {
+        Map<TreeAnalyser, Thread> threads = new HashMap<>();
+        tas.forEach( analyser -> {
+            Thread t = new Thread(new TreeAnalyserRunnable(analyser));
+            threads.put(analyser, t);
+            t.start();
+        });
+        return threads;
+    }
+
+    List<TreeAnalyser> resolveAnalysers(String path, List<String> analysers, DelegateTree<FileNode, Edge> tree) {
+        List<TreeAnalyser> tas = new ArrayList<>();
+        Class<?>[] expectedConstructorParams = new Class<?>[]{DelegateTree.class, String.class};
+        analysers.forEach(s -> {
+            try {
+                Class<?> clazz = Class.forName(s);
+                Arrays.stream(clazz.getConstructors()).forEach(constructor -> {
+                    if (constructor.getParameterCount() == 2 &&
+                            Arrays.equals(expectedConstructorParams, constructor.getParameterTypes())) {
+                        try {
+                            tas.add((TreeAnalyser) constructor.newInstance(tree, path));
+                            System.out.println("Preparing to run: " + s);
+                        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                            System.err.println("Could not instantiate: " + s + ".. ensure this class implements " +
+                                    "the TreeAnalyser interface & has the correct constructor. skipping.");
+                        }
+                    }
+                });
+            } catch (ClassNotFoundException e) {
+                System.err.println("Class: " + s + "not found. make sure you have typed the name correctly. skipping.");
+            }
+        });
+        return tas;
+    }
+
 
     /**
      * USAGE:
@@ -102,9 +130,7 @@ public class Runner {
      * run --path <path> --maxDepth <max> --ignore<commaseplist> --typeFilter<commaseplist> --logpath <path>
      * --analysers <comseplist>
      *
-     * @param args
-     * @throws IOException
-     * @throws AnalysisException
+     * @param args command line args
      */
     public static void main(String[] args) {
 
