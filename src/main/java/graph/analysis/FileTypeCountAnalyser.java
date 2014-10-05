@@ -71,7 +71,6 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
             }
 
             if (n.isDirectory()) {
-                //tree.getChildren(n).forEach((node) -> tq.add(node));
                 tq.addAll(tree.getChildren(n));
             }
         }
