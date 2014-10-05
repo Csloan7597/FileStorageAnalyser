@@ -10,9 +10,11 @@ import graph.analysis.TreeAnalyserRunnable;
 import graph.factory.JungGraphFactory;
 import org.apache.pdfbox.exceptions.COSVisitorException;
 import org.apache.pdfbox.util.PDFMergerUtility;
+import utils.JsonFileLoadHelper;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.FileSystems;
@@ -22,6 +24,10 @@ import java.util.*;
  * Created by conor on 06/09/2014.
  */
 public class Runner {
+
+    public Runner(Map<String, Object> config) {
+        // This will use config file to build etc.
+    }
 
     public Runner(String path, String logPath, List<String> ignores, List<String> typeFilters, int maxDepth,
                   String analysers)  {
@@ -141,7 +147,20 @@ public class Runner {
         List<String> ignores = null;
         List<String> typeFilters = null;
 
-        // Read args
+        // If a config has been passed in, use this.
+        int index = Arrays.asList(args).indexOf("--config");
+        if (index != -1 && index != args.length) {
+            try {
+                Map<String, Object> config = JsonFileLoadHelper.loadJsonFile(args[index]);
+                new Runner(config);
+            } catch (FileNotFoundException e) {
+                System.err.println("Config file specified not found.");
+            } catch (IOException e) {
+                System.err.println("There was a problem reading in the config file.");
+            }
+        }
+
+        // Read args if no config supplied
         for (int i = 0; i < args.length - 1; i++) {
             switch (args[i].toLowerCase()) {
                 case "--path":
