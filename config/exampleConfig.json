@@ -1,0 +1,17 @@
+{
+    "analysers" : [
+        {
+            "className" : "graph.analysis.FileCountAnalyser"
+        },
+
+        {
+            "className" : "graph.analysis.FileTypeCountAnalyser"
+        }
+    ],
+
+    "maxDepth" : 10,
+    "path" : "/Users/conor/Downloads/Coursework",
+    "logPath" : "logs/reporty.pdf",
+    "filterTypes" : [],
+    "ignoreList" : []
+}

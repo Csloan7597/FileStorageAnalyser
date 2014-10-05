@@ -18,10 +18,9 @@ public class JsonFileLoadHelper {
     }
 
     public static Map<String, Object> loadJsonFile(String path) throws FileNotFoundException, IOException  {
-        ObjectMapper om = new ObjectMapper();
-        File configFile = new File(path);
-        String content = configFile.toString();
-        return om.readValue(content, new TypeReference<Map<String, Object>>() { });
+        return new ObjectMapper().readValue(
+                new File(path),
+                new TypeReference<Map<String, Object>>() { });
     }
 
 }

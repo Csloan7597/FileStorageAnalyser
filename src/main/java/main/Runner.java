@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.FileSystems;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by conor on 06/09/2014.
@@ -26,7 +27,48 @@ import java.util.*;
 public class Runner {
 
     public Runner(Map<String, Object> config) {
-        // This will use config file to build etc.
+        // Set correct options & create a factory
+        JungGraphFactory.Options options = new JungGraphFactory.Options.Builder()
+                .ignoreList((List<String>) config.get("ignoreList"))
+                .typeFilters((List<String>) config.get("typeFilters"))
+                .maxDepth((Integer) config.get("maxDepth")).build();
+        JungGraphFactory factory = new JungGraphFactory(options);
+
+        // Use the factory to read in the FS and create a graph
+        String path = (String) config.get("path");
+        String logPath = (String) config.get("logPath");
+
+        DelegateTree<FileNode, Edge> tree = (path == null) ?
+                factory.generateFsGraph(FileSystems.getDefault()) : factory.generateFsGraph(path);
+
+        // Read in the 'analyser' tokens and create the analyser list
+        List<String> analyserNames = ((List<Object>) config.get("analysers")).stream()
+                .map(item -> (Map<String, String>) item)
+                .map(item -> item.get("className"))
+                .collect(Collectors.toList());
+        List<TreeAnalyser> tas = resolveAnalysers(path, analyserNames, tree);
+
+        // Run the analyses as threads
+        Map<TreeAnalyser, Thread> threads = runAnalysersInParallel(tas);
+
+        // Wait for threads to finish
+        waitForAnalyserThreadsFinish(threads);
+
+        // Create list of pdf streams
+        List<ByteArrayOutputStream> pdfStreams = getPdfStreamsFromAnalysers(threads);
+
+        // Merge and print document
+        PDFMergerUtility mergeUtil = new PDFMergerUtility();
+        pdfStreams.forEach((pdfStream) -> mergeUtil.addSource(new ByteArrayInputStream(pdfStream.toByteArray())));
+
+        try {
+            mergeUtil.setDestinationFileName(logPath);
+            mergeUtil.mergeDocuments();
+        } catch (COSVisitorException | IOException e) {
+            System.err.println("Error merging the document - sorry!");
+        }
+
+        System.out.println("Finished! Your report is ready at path: " + logPath);
     }
 
     public Runner(String path, String logPath, List<String> ignores, List<String> typeFilters, int maxDepth,
@@ -151,12 +193,14 @@ public class Runner {
         int index = Arrays.asList(args).indexOf("--config");
         if (index != -1 && index != args.length) {
             try {
-                Map<String, Object> config = JsonFileLoadHelper.loadJsonFile(args[index]);
+                Map<String, Object> config = JsonFileLoadHelper.loadJsonFile(args[index + 1]);
                 new Runner(config);
             } catch (FileNotFoundException e) {
                 System.err.println("Config file specified not found.");
             } catch (IOException e) {
                 System.err.println("There was a problem reading in the config file.");
+                System.err.println(e.getMessage());
+                e.printStackTrace();
             }
         }
 
