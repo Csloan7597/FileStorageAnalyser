@@ -21,10 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
@@ -78,6 +75,7 @@ public class Runner {
         printMergedPdf(logPath, getPdfStreamsFromAnalysers(tas));
 
         System.out.println("Finished! Your report is ready at path: " + logPath);
+        System.exit(0); // TEMPORARY - application seems to hang for some reason.
     }
 
 
@@ -114,6 +112,9 @@ public class Runner {
 
         // Get PDFs and print them
         printMergedPdf(logPath, getPdfStreamsFromAnalysers(tas));
+
+        System.out.println("Finished! Your report is ready at path: " + logPath);
+        System.exit(0); // TEMPORARY - application seems to hang for some reason.
     }
 
     /**
@@ -183,7 +184,7 @@ public class Runner {
      *
      * @param tas the analysers
      */
-    private void runAnalysersInParallel(List<TreeAnalyser> tas) {
+    void runAnalysersInParallel(List<TreeAnalyser> tas) {
         // Run the analyses as threads
         try {
             ExecutorService executorService = Executors.newFixedThreadPool(tas.size());
