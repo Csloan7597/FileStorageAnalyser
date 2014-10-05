@@ -54,19 +54,8 @@ public class Runner {
         // Wait for threads to finish
         waitForAnalyserThreadsFinish(threads);
 
-        // Create list of pdf streams
-        List<ByteArrayOutputStream> pdfStreams = getPdfStreamsFromAnalysers(threads);
-
-        // Merge and print document
-        PDFMergerUtility mergeUtil = new PDFMergerUtility();
-        pdfStreams.forEach((pdfStream) -> mergeUtil.addSource(new ByteArrayInputStream(pdfStream.toByteArray())));
-
-        try {
-            mergeUtil.setDestinationFileName(logPath);
-            mergeUtil.mergeDocuments();
-        } catch (COSVisitorException | IOException e) {
-            System.err.println("Error merging the document - sorry!");
-        }
+        // Get PDFs and print them
+        printMergedPdf(logPath,  getPdfStreamsFromAnalysers(threads));
 
         System.out.println("Finished! Your report is ready at path: " + logPath);
     }
@@ -94,19 +83,8 @@ public class Runner {
         // Wait for threads to finish
         waitForAnalyserThreadsFinish(threads);
 
-        // Create list of pdf streams
-        List<ByteArrayOutputStream> pdfStreams = getPdfStreamsFromAnalysers(threads);
-
-        // Merge and print document
-        PDFMergerUtility mergeUtil = new PDFMergerUtility();
-        pdfStreams.forEach((pdfStream) -> mergeUtil.addSource(new ByteArrayInputStream(pdfStream.toByteArray())));
-
-        try {
-            mergeUtil.setDestinationFileName(logPath);
-            mergeUtil.mergeDocuments();
-        } catch (COSVisitorException | IOException e) {
-            System.err.println("Error merging the document - sorry!");
-        }
+        // Get PDF streams and print
+        printMergedPdf(logPath, getPdfStreamsFromAnalysers(threads));
 
         System.out.println("Finished! Your report is ready at path: " + logPath);
     }
@@ -124,6 +102,19 @@ public class Runner {
             }
         });
         return pdfStreams;
+    }
+
+    void printMergedPdf(String logPath, List<ByteArrayOutputStream> pdfStreams) {
+        // Merge and print document
+        PDFMergerUtility mergeUtil = new PDFMergerUtility();
+        pdfStreams.forEach((pdfStream) -> mergeUtil.addSource(new ByteArrayInputStream(pdfStream.toByteArray())));
+
+        try {
+            mergeUtil.setDestinationFileName(logPath);
+            mergeUtil.mergeDocuments();
+        } catch (COSVisitorException | IOException e) {
+            System.err.println("Error merging the document - sorry!");
+        }
     }
 
     void waitForAnalyserThreadsFinish(Map<TreeAnalyser, Thread> threads) {
@@ -166,6 +157,8 @@ public class Runner {
                 });
             } catch (ClassNotFoundException e) {
                 System.err.println("Class: " + s + "not found. make sure you have typed the name correctly. skipping.");
+            } catch (NullPointerException e) {
+                System.err.println("One of your classNames was not correctly configured - please check and try again.");
             }
         });
         return tas;
@@ -229,9 +222,6 @@ public class Runner {
                     break;
             }
         }
-
-        // Validate args
-        // TODO validate args
 
         // Run
         new Runner(path, logPath, ignores, typeFilters, maxDepth, analysers);
