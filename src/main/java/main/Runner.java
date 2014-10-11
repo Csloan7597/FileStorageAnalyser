@@ -1,12 +1,11 @@
 package main;
 
-import edu.uci.ics.jung.graph.DelegateTree;
 import exceptions.PdfGenerationException;
-import graph.Edge;
-import graph.FileNode;
+import graph.FileTreeNode;
 import graph.analysis.TreeAnalyser;
 import graph.analysis.TreeAnalyserCallable;
-import graph.factory.JungGraphFactory;
+import graph.factory.CustomGraphFactory;
+import graph.factory.Options;
 import org.apache.pdfbox.exceptions.COSVisitorException;
 import org.apache.pdfbox.util.PDFMergerUtility;
 import utils.JsonFileLoadHelper;
@@ -48,25 +47,25 @@ public class Runner {
      */
     public Runner(Map<String, Object> config) {
         // Set correct options & create a factory
-        JungGraphFactory.Options options = new JungGraphFactory.Options.Builder()
+        Options options = new Options.Builder()
                 .ignoreList((List<String>) config.get("ignoreList"))
                 .typeFilters((List<String>) config.get("typeFilters"))
                 .maxDepth((Integer) config.get("maxDepth")).build();
-        JungGraphFactory factory = new JungGraphFactory(options);
+        CustomGraphFactory factory = new CustomGraphFactory(options);
 
         // Use the factory to read in the FS and create a graph
-        String path = (String) config.get("path");
+        List<String> paths = (List<String>) config.get("paths");
         String logPath = (String) config.get("logPath");
 
-        DelegateTree<FileNode, Edge> tree = (path == null) ?
-                factory.generateFsGraph(FileSystems.getDefault()) : factory.generateFsGraph(path);
+        List<FileTreeNode> roots = (paths == null) ?
+                factory.generateFsGraph(FileSystems.getDefault()) : factory.generateFsGraph(paths);
 
         // Read in the 'analyser' tokens and create the analyser list
         List<String> analyserNames = ((List<Object>) config.get("analysers")).stream()
                 .map(item -> (Map<String, String>) item)
                 .map(item -> item.get("className"))
                 .collect(Collectors.toList());
-        List<TreeAnalyser> tas = resolveAnalysers(path, analyserNames, tree);
+        List<TreeAnalyser> tas = resolveAnalysers(paths, analyserNames, roots);
 
         // Run threads
         runAnalysersInParallel(tas);
@@ -75,7 +74,6 @@ public class Runner {
         printMergedPdf(logPath, getPdfStreamsFromAnalysers(tas));
 
         System.out.println("Finished! Your report is ready at path: " + logPath);
-        System.exit(0); // TEMPORARY - application seems to hang for some reason.
     }
 
 
@@ -83,29 +81,29 @@ public class Runner {
      * For when the application is run with limited command line options. Specific pieces of config are
      * passed here, enough to run the application in its simplest form.
      *
-     * @param path        The root path to analyse files from
+     * @param paths        The root path to analyse files from
      * @param logPath     The path to write the resulting PDF report to
      * @param ignores     A list of files/types to ignore
      * @param typeFilters A list of types to be the only ones included, the opposite of ignores
      * @param maxDepth    The maximum tree depth to delve when traversing files in the filesystem
      * @param analysers   A list of strings representing java class files, which perform analysis
      */
-    public Runner(String path, String logPath, List<String> ignores, List<String> typeFilters, int maxDepth,
+    public Runner(List<String> paths, String logPath, List<String> ignores, List<String> typeFilters, int maxDepth,
                   String analysers) {
 
         // Set correct options & create a factory
-        JungGraphFactory.Options options = new JungGraphFactory.Options.Builder()
+        Options options = new Options.Builder()
                 .ignoreList(ignores)
                 .typeFilters(typeFilters)
                 .maxDepth(maxDepth).build();
-        JungGraphFactory factory = new JungGraphFactory(options);
+        CustomGraphFactory factory = new CustomGraphFactory(options);
 
         // Use the configured factory to read in the filesystem & create a graph
-        DelegateTree<FileNode, Edge> tree = (path == null) ?
-                factory.generateFsGraph(FileSystems.getDefault()) : factory.generateFsGraph(path);
+        List<FileTreeNode> roots = (paths == null) ?
+                factory.generateFsGraph(FileSystems.getDefault()) : factory.generateFsGraph(paths);
 
         // Read in the 'analyser' tokens and create the analyser list
-        List<TreeAnalyser> tas = resolveAnalysers(path, Arrays.asList(analysers.split(",")), tree);
+        List<TreeAnalyser> tas = resolveAnalysers(paths, Arrays.asList(analysers.split(",")), roots);
 
         // Run threads
         runAnalysersInParallel(tas);
@@ -114,7 +112,6 @@ public class Runner {
         printMergedPdf(logPath, getPdfStreamsFromAnalysers(tas));
 
         System.out.println("Finished! Your report is ready at path: " + logPath);
-        System.exit(0); // TEMPORARY - application seems to hang for some reason.
     }
 
     /**
@@ -134,49 +131,55 @@ public class Runner {
         List<String> ignores = null;
         List<String> typeFilters = null;
 
+        Runner runner = null;
+
         // If a config has been passed in, use this.
         int index = Arrays.asList(args).indexOf("--config");
         if (index != -1 && index != args.length) {
             try {
                 Map<String, Object> config = JsonFileLoadHelper.loadJsonFile(args[index + 1]);
-                new Runner(config);
+                runner = new Runner(config);
             } catch (FileNotFoundException e) {
                 System.err.println("Config file specified not found.");
+                System.exit(1);
             } catch (IOException e) {
                 System.err.println("There was a problem reading in the config file.");
                 System.err.println(e.getMessage());
                 e.printStackTrace();
+                System.exit(1);
             }
-        }
+        } else {
 
-        // Read args if no config supplied
-        for (int i = 0; i < args.length - 1; i++) {
-            switch (args[i].toLowerCase()) {
-                case "--path":
-                    path = args[i + 1];
-                    break;
-                case "--maxdepth":
-                    maxDepth = Integer.parseInt(args[i + 1]);
-                    break;
-                case "--ignore":
-                    ignores = Arrays.asList(args[i + 1].split(","));
-                    break;
-                case "--typefilter":
-                    typeFilters = Arrays.asList(args[i + 1].split(","));
-                    break;
-                case "--logpath":
-                    logPath = args[i + 1];
-                    break;
-                case "--analysers":
-                    analysers = args[i + 1];
-                    break;
-                default:
-                    break;
+            // Read args if no config supplied
+            for (int i = 0; i < args.length - 1; i++) {
+                switch (args[i].toLowerCase()) {
+                    case "--path":
+                        path = args[i + 1];
+                        break;
+                    case "--maxdepth":
+                        maxDepth = Integer.parseInt(args[i + 1]);
+                        break;
+                    case "--ignore":
+                        ignores = Arrays.asList(args[i + 1].split(","));
+                        break;
+                    case "--typefilter":
+                        typeFilters = Arrays.asList(args[i + 1].split(","));
+                        break;
+                    case "--logpath":
+                        logPath = args[i + 1];
+                        break;
+                    case "--analysers":
+                        analysers = args[i + 1];
+                        break;
+                    default:
+                        break;
+                }
             }
-        }
 
-        // Run
-        new Runner(path, logPath, ignores, typeFilters, maxDepth, analysers);
+            runner = new Runner(Arrays.asList(path.split(",")), logPath, ignores, typeFilters, maxDepth, analysers);
+        }
+        System.out.println("Done!");
+        runner = null;
     }
 
     /**
@@ -241,38 +244,21 @@ public class Runner {
             mergeUtil.mergeDocuments();
         } catch (COSVisitorException | IOException e) {
             System.err.println("Error merging the document - sorry!");
-        } finally {
-
         }
-    }
-
-    /**
-     * Given a number of threads / analysers, waits for every thread to finish.
-     *
-     * @param threads Map of Analyser to Thread
-     */
-    void waitForAnalyserThreadsFinish(Map<TreeAnalyser, Thread> threads) {
-        threads.forEach((analyser, thread) -> {
-            try {
-                thread.join();
-            } catch (InterruptedException e) {
-                System.err.println("Interrupted Exception - Threading issue");
-            }
-        });
     }
 
     /**
      * Given a list of strings representing java classes, uses java reflection to load the specified classes, and
      * instantiates these as tree analysers. Adds these to a list, which is then returned.
      *
-     * @param path      the file path to pass to tree analysers
+     * @param paths      the file path to pass to tree analysers
      * @param analysers the analyser package names
-     * @param tree      the tree to pass to analysers
+     * @param roots      the tree to pass to analysers
      * @return the instantiated tree analysers
      */
-    List<TreeAnalyser> resolveAnalysers(String path, List<String> analysers, DelegateTree<FileNode, Edge> tree) {
+    List<TreeAnalyser> resolveAnalysers(List<String> paths, List<String> analysers, List<FileTreeNode> roots) {
         List<TreeAnalyser> tas = new ArrayList<>();
-        Class<?>[] expectedConstructorParams = new Class<?>[]{DelegateTree.class, String.class};
+        Class<?>[] expectedConstructorParams = new Class<?>[]{List.class, List.class};
         analysers.forEach(s -> {
             try {
                 Class<?> clazz = Class.forName(s);
@@ -280,7 +266,7 @@ public class Runner {
                     if (constructor.getParameterCount() == 2 &&
                             Arrays.equals(expectedConstructorParams, constructor.getParameterTypes())) {
                         try {
-                            tas.add((TreeAnalyser) constructor.newInstance(tree, path));
+                            tas.add((TreeAnalyser) constructor.newInstance(roots, paths));
                             System.out.println("Preparing to run: " + s);
                         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                             System.err.println("Could not instantiate: " + s + ".. ensure this class implements " +
@@ -296,5 +282,4 @@ public class Runner {
         });
         return tas;
     }
-
 }

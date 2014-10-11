@@ -1,10 +1,8 @@
 package graph.analysis;
 
-import edu.uci.ics.jung.graph.DelegateTree;
 import exceptions.AnalysisException;
 import exceptions.PdfGenerationException;
-import graph.Edge;
-import graph.FileNode;
+import graph.FileTreeNode;
 import net.sf.dynamicreports.report.builder.DynamicReports;
 import net.sf.dynamicreports.report.builder.column.TextColumnBuilder;
 import net.sf.dynamicreports.report.builder.component.Components;
@@ -14,10 +12,7 @@ import net.sf.jasperreports.engine.JRDataSource;
 import utils.DynamicReportStylesHelper;
 
 import java.io.ByteArrayOutputStream;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 
 /**
  * Created by conor on 07/09/2014.
@@ -27,16 +22,16 @@ import java.util.Queue;
  */
 public class FileTypeCountAnalyser extends TreeAnalyser {
 
-    private DelegateTree<FileNode, Edge> tree;
-    private String path;
+    private List<FileTreeNode> tree;
+    private List<String> paths;
 
     private final Map<String, Integer> fileTypeCounts = new HashMap<>();
     private final String name = "File Type Count Analysis";
     private final String desc = "Counts how many files of each type are in the given filesystem";
     private final String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
 
-    public FileTypeCountAnalyser(DelegateTree<FileNode, Edge> tree, String path) {
-        super(tree, path);
+    public FileTypeCountAnalyser(List<FileTreeNode> tree, List<String> paths) {
+        super(tree, paths);
     }
 
     @Override
@@ -50,23 +45,23 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
     }
 
     @Override
-    public void setTree(DelegateTree<FileNode, Edge> tree) {
+    public void setTree(List<FileTreeNode> tree) {
         this.tree = tree;
     }
 
     @Override
-    public void setPath(String path) {
-        this.path = path;
+    public void setPaths(List<String> paths) {
+        this.paths = paths;
     }
 
     @Override
     public void doAnalyse() throws AnalysisException {
-        Queue<FileNode> tq = new LinkedList<>();
-        tq.add(tree.getRoot());
+
+        Queue<FileTreeNode> tq = new LinkedList<>();
+        tree.forEach(tq::add);
 
         while (!tq.isEmpty()) {
-            FileNode n = tq.poll();
-
+            FileTreeNode n = tq.poll();
             if (!fileTypeCounts.containsKey(n.getFileType())) {
                 fileTypeCounts.put(n.getFileType(), 1);
             } else {
@@ -74,7 +69,7 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
             }
 
             if (n.isDirectory()) {
-                tq.addAll(tree.getChildren(n));
+                n.getChildren().forEach(tq::add);
             }
         }
     }
@@ -90,7 +85,7 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             DynamicReports.report()
                     .setColumnTitleStyle(DynamicReportStylesHelper.columnTitleStyle())
-                    .title(Components.text(String.format(reportTitleAsHtml, name, path, desc)).
+                    .title(Components.text(String.format(reportTitleAsHtml, name, paths, desc)).
                             setStyle(DynamicReportStylesHelper.styledMarkupStyle()))
                     .columns(//add columns
                             fileTypeCol, fileCountCol
@@ -98,7 +93,7 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
                     .setDataSource(createDataSource())
                     .summary(
                             DynamicReports.cht.pieChart()
-                                    .setTitle("Pie chart")
+                                    .setTitle("Pie Chart of File Types in specified files")
                                     .setStyle(DynamicReportStylesHelper.boldStyle())
                                     .setKey(fileTypeCol)
                                     .series(DynamicReports.cht.serie(fileCountCol)))

@@ -1,6 +1,7 @@
 package graph;
 
 import java.io.File;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Created by conor on 07/09/2014.
@@ -9,7 +10,9 @@ import java.io.File;
  * or repeatedly accessing the file system when performing analysis. This approach also allows for caching and other
  * ways of speeding this tool up upon reuse.
  */
-public class FileNode {
+public class FileTreeNode {
+
+    private final int depth;
 
     private String path;
     private final String id;
@@ -17,16 +20,29 @@ public class FileNode {
     private String fileType;
     private long fileSize;
 
+    private final FileTreeNode parent;
+    private CopyOnWriteArrayList<FileTreeNode> children = new CopyOnWriteArrayList<>();
+
     /**
      * Constructor which extracts useful information from a given file.
      * @param file the file which this node will represent
      */
-    public FileNode(File file) {
+    public FileTreeNode(File file, FileTreeNode parent) {
+        this.parent = parent;
+        this.depth = (parent == null) ? 1 : parent.getDepth() + 1;
         this.path = file.getPath();
         this.id = file.getPath();
         this.isDirectory = file.isDirectory();
         this.fileType = isDirectory ? "directory" : file.getName().substring(file.getName().lastIndexOf('.') + 1);
         this.fileSize = file.getTotalSpace();
+    }
+
+    /**
+     * The depth of this node in the tree structure
+     * @return depth
+     */
+    public int getDepth() {
+        return this.depth;
     }
 
     /**
@@ -52,6 +68,12 @@ public class FileNode {
     public void setPath(String path) {
         this.path = path;
     }
+
+    /**
+     * Get the path this node represents
+     * @return
+     */
+    public String getPath() { return this.path; }
 
     /**
      * Set the file type of this node's file.
@@ -89,5 +111,17 @@ public class FileNode {
     public String toString() {
         String out = "Id: %s, Path: %s, isDir: %s, fileType: %s, fileSize: %d. ";
         return String.format(out, id, path, isDirectory, fileType, fileSize);
+    }
+
+    public FileTreeNode getParent() {
+        return parent;
+    }
+
+    public CopyOnWriteArrayList<FileTreeNode> getChildren() {
+        return (CopyOnWriteArrayList<FileTreeNode>) this.children.clone();
+    }
+
+    public void addChild(FileTreeNode fileNode) {
+        this.children.add(fileNode);
     }
 }

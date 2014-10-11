@@ -1,12 +1,11 @@
 package graph.analysis;
 
-import edu.uci.ics.jung.graph.DelegateTree;
 import exceptions.AnalysisException;
 import exceptions.PdfGenerationException;
-import graph.Edge;
-import graph.FileNode;
+import graph.FileTreeNode;
 
 import java.io.ByteArrayOutputStream;
+import java.util.List;
 
 /**
  * Created by conor on 07/09/2014.
@@ -17,11 +16,11 @@ public abstract class TreeAnalyser {
      * Standard constructor for a tree analyser. Specifies that a tree and a path
      * are required for any of these to run.
      * @param tree The tree structure to analyse
-     * @param path The path in the filesystem the given tree represents
+     * @param paths The path in the filesystem the given tree represents
      */
-    public TreeAnalyser(DelegateTree<FileNode, Edge> tree, String path) {
+    public TreeAnalyser(List<FileTreeNode> tree, List<String> paths) {
         this.setTree(tree);
-        this.setPath(path);
+        this.setPaths(paths);
     }
 
     /**
@@ -40,13 +39,13 @@ public abstract class TreeAnalyser {
      * Set the tree to be analysed by this analyser.
      * @param tree a tree
      */
-    public abstract void setTree(DelegateTree<FileNode, Edge> tree);
+    public abstract void setTree(List<FileTreeNode> tree);
 
     /**
      * Set the filesystem path which is being analysed.
-     * @param path the filesystem path
+     * @param paths the filesystem paths
      */
-    public abstract void setPath(String path);
+    public abstract void setPaths(List<String> paths);
 
     /**
      * Perform the analysis action, saving the results for future consumption.

@@ -1,11 +1,10 @@
 package graph.analysis;
 
-import edu.uci.ics.jung.graph.DelegateTree;
 import exceptions.AnalysisException;
 import exceptions.PdfGenerationException;
-import graph.Edge;
-import graph.FileNode;
+import graph.FileTreeNode;
 import net.sf.dynamicreports.report.builder.DynamicReports;
+import net.sf.dynamicreports.report.builder.column.TextColumnBuilder;
 import net.sf.dynamicreports.report.builder.component.Components;
 import net.sf.dynamicreports.report.datasource.DRDataSource;
 import net.sf.dynamicreports.report.exception.DRException;
@@ -13,8 +12,9 @@ import net.sf.jasperreports.engine.JRDataSource;
 import utils.DynamicReportStylesHelper;
 
 import java.io.ByteArrayOutputStream;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
+import static net.sf.dynamicreports.report.builder.DynamicReports.*;
+
 
 /**
  * Created by conor on 07/09/2014.
@@ -24,17 +24,18 @@ import java.util.Queue;
  */
 public class FileCountAnalyser extends TreeAnalyser {
 
-    private DelegateTree<FileNode, Edge> tree;
-    private int fileCount = 0;
-    private String path;
+    private List<FileTreeNode> tree;
+
+    private Map<String, Integer> fileCounts = new HashMap<>();
+    private List<String> paths;
 
     private final String name = "File Count Analysis";
     private final String desc = "Counts how many files (not folders) are in the given filesystem";
 
     private final String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
 
-    public FileCountAnalyser(DelegateTree<FileNode, Edge> tree, String path) {
-        super(tree, path);
+    public FileCountAnalyser(List<FileTreeNode> tree, List<String> paths) {
+        super(tree, paths);
     }
 
     @Override
@@ -48,27 +49,31 @@ public class FileCountAnalyser extends TreeAnalyser {
     }
 
     @Override
-    public void setTree(DelegateTree<FileNode, Edge> tree) {
+    public void setTree(List<FileTreeNode> tree) {
         this.tree = tree;
     }
 
     @Override
-    public void setPath(String path) {
-        this.path = path;
+    public void setPaths(List<String> paths) {
+        this.paths = paths;
     }
 
     @Override
     public void doAnalyse() throws AnalysisException {
-        Queue<FileNode> tq = new LinkedList<>();
-        tq.add(tree.getRoot());
+        for (FileTreeNode root : tree) {
+            int fileCount = 0;
+            Queue<FileTreeNode> tq = new LinkedList<>();
+            tq.add(root);
 
-        while (!tq.isEmpty()) {
-            FileNode n = tq.poll();
-            if (!n.isDirectory()) {
-                fileCount++;
-            } else {
-                tree.getChildren(n).forEach(tq::add);
+            while (!tq.isEmpty()) {
+                FileTreeNode n = tq.poll();
+                if (!n.isDirectory()) {
+                    fileCount++;
+                } else {
+                    n.getChildren().forEach(tq::add);
+                }
             }
+            fileCounts.put(root.getPath(), fileCount);
         }
     }
 
@@ -76,15 +81,21 @@ public class FileCountAnalyser extends TreeAnalyser {
     public ByteArrayOutputStream generatePdfReport() throws PdfGenerationException {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            TextColumnBuilder<String> pathCol = DynamicReports.col.column("Path", "path", DynamicReports.type.stringType());
+            TextColumnBuilder<Integer> fileCountCol = DynamicReports.col.column("File Count", "file_count", DynamicReports.type.integerType());
+
             DynamicReports.report()
                     .setColumnTitleStyle(DynamicReportStylesHelper.columnTitleStyle())
-                    .title(Components.text(String.format(reportTitleAsHtml, name, path, desc)).
+                    .title(Components.text(String.format(reportTitleAsHtml, name, paths.toString(), desc)).
                             setStyle(DynamicReportStylesHelper.styledMarkupStyle()))
                     .columns(//add columns
-                            DynamicReports.col.column("Path", "path", DynamicReports.type.stringType()),
-                            DynamicReports.col.column("File Count", "file_count", DynamicReports.type.integerType())
+                            pathCol,
+                            fileCountCol
                     )
                     .setDataSource(createDataSource())
+                    .subtotalsAtPageFooter(
+                            sbt.sum(fileCountCol).setLabel("Total: ").setLabelStyle(DynamicReportStylesHelper.boldStyle())
+                    )
                     .toPdf(outputStream);
             return outputStream;
         } catch (DRException e) {
@@ -99,7 +110,7 @@ public class FileCountAnalyser extends TreeAnalyser {
      */
     private JRDataSource createDataSource() {
         DRDataSource dataSource = new DRDataSource("path", "file_count");
-        dataSource.add(path, fileCount);
+        fileCounts.forEach(dataSource::add);
         return dataSource;
     }
 }
