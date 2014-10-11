@@ -80,8 +80,10 @@ public class FileCountAnalyser extends TreeAnalyser {
     public ByteArrayOutputStream generatePdfReport() throws PdfGenerationException {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            TextColumnBuilder<String> pathCol = DynamicReports.col.column("Path", "path", DynamicReports.type.stringType());
-            TextColumnBuilder<Integer> fileCountCol = DynamicReports.col.column("File Count", "file_count", DynamicReports.type.integerType());
+            TextColumnBuilder<String> pathCol = DynamicReports.col.column("Path", "path", DynamicReports.type.stringType())
+                    .setStyle(DynamicReportStylesHelper.centeredStyle());
+            TextColumnBuilder<Integer> fileCountCol = DynamicReports.col.column("File Count", "file_count",
+                    DynamicReports.type.integerType()).setStyle(DynamicReportStylesHelper.centeredStyle());
 
             DynamicReports.report()
                     .setColumnTitleStyle(DynamicReportStylesHelper.columnTitleStyle())
