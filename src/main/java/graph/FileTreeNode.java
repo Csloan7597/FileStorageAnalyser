@@ -13,6 +13,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class FileTreeNode {
 
     private final int depth;
+    private final long lastModified;
+    private final boolean isHidden;
 
     private String path;
     private final String id;
@@ -33,8 +35,10 @@ public class FileTreeNode {
         this.path = file.getPath();
         this.id = file.getPath();
         this.isDirectory = file.isDirectory();
+        this.lastModified = file.lastModified();
+        this.isHidden = file.isHidden();
         this.fileType = isDirectory ? "directory" : file.getName().substring(file.getName().lastIndexOf('.') + 1);
-        this.fileSize = file.getTotalSpace();
+        this.fileSize = file.length();
     }
 
     /**
@@ -51,6 +55,22 @@ public class FileTreeNode {
      */
     public String getId() {
         return id;
+    }
+
+    /**
+     * Whether this is a hidden file.
+     * @return if the file is hidden
+     */
+    public boolean isHidden() {
+        return this.isHidden;
+    }
+
+    /**
+     * Long rep of when file was last modified.
+     * @return last modified
+     */
+    public long getLastModified() {
+        return this.lastModified;
     }
 
     /**

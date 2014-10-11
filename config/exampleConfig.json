@@ -6,6 +6,10 @@
 
         {
             "className" : "graph.analysis.FileTypeCountAnalyser"
+        },
+
+        {
+            "className" : "graph.analysis.FileInfoAnalyser"
         }
     ],
 
