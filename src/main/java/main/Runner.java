@@ -1,5 +1,6 @@
 package main;
 
+import exceptions.AnalysisException;
 import exceptions.PdfGenerationException;
 import graph.FileTreeNode;
 import graph.analysis.TreeAnalyser;
@@ -46,6 +47,7 @@ public class Runner {
      * @param config configuration for this run
      */
     public Runner(Map<String, Object> config) {
+
         // Set correct options & create a factory
         Options options = new Options.Builder()
                 .ignoreList((List<String>) config.get("ignoreList"))
@@ -67,11 +69,8 @@ public class Runner {
                 .collect(Collectors.toList());
         List<TreeAnalyser> tas = resolveAnalysers(paths, analyserNames, roots);
 
-        // Run threads
-        runAnalysersInParallel(tas);
-
-        // Get PDFs and print them
-        printMergedPdf(logPath, getPdfStreamsFromAnalysers(tas));
+        // Run analysers to Get PDFs and then print them
+        printMergedPdf(logPath, runAnalysersInParallel(tas));
 
         System.out.println("Finished! Your report is ready at path: " + logPath);
     }
@@ -105,11 +104,8 @@ public class Runner {
         // Read in the 'analyser' tokens and create the analyser list
         List<TreeAnalyser> tas = resolveAnalysers(paths, Arrays.asList(analysers.split(",")), roots);
 
-        // Run threads
-        runAnalysersInParallel(tas);
-
         // Get PDFs and print them
-        printMergedPdf(logPath, getPdfStreamsFromAnalysers(tas));
+        printMergedPdf(logPath, runAnalysersInParallel(tas));
 
         System.out.println("Finished! Your report is ready at path: " + logPath);
     }
@@ -131,14 +127,12 @@ public class Runner {
         List<String> ignores = null;
         List<String> typeFilters = null;
 
-        Runner runner = null;
-
         // If a config has been passed in, use this.
         int index = Arrays.asList(args).indexOf("--config");
         if (index != -1 && index != args.length) {
             try {
                 Map<String, Object> config = JsonFileLoadHelper.loadJsonFile(args[index + 1]);
-                runner = new Runner(config);
+                new Runner(config);
             } catch (FileNotFoundException e) {
                 System.err.println("Config file specified not found.");
                 System.exit(1);
@@ -176,55 +170,41 @@ public class Runner {
                 }
             }
 
-            runner = new Runner(Arrays.asList(path.split(",")), logPath, ignores, typeFilters, maxDepth, analysers);
+            new Runner(Arrays.asList(path.split(",")), logPath, ignores, typeFilters, maxDepth, analysers);
         }
         System.out.println("Done!");
-        runner = null;
     }
 
     /**
      * Given a number of analysers, wraps each in a callable, and runs it in a new thread.
+     * Return the generated PDFs
      *
      * @param tas the analysers
+     * @return pdfs as byte arrays list
      */
-    void runAnalysersInParallel(List<TreeAnalyser> tas) {
-        // Run the analyses as threads
+    List<ByteArrayOutputStream> runAnalysersInParallel(List<TreeAnalyser> tas) {
+        List<ByteArrayOutputStream> pdfs = new ArrayList<>();
+
         try {
             ExecutorService executorService = Executors.newFixedThreadPool(tas.size());
-            List<Future<Void>> futures =
+            List<Future<ByteArrayOutputStream>> futures =
                     executorService.invokeAll(tas.stream().map(TreeAnalyserCallable::new).collect(Collectors.toList()));
 
             // Wait for them to finish
             futures.forEach(f -> {
                 try {
-                    f.get();
+                    pdfs.add(f.get());
                 } catch (InterruptedException e) {
                     System.err.println("Interrupted running one of the threads");
                 } catch (ExecutionException e) {
                     System.err.println("Execution problem with one of the threads");
                 }
             });
+            executorService.shutdown();
         } catch (InterruptedException e) {
             System.err.println("Threading issue - interrupted exception");
         }
-    }
-
-    /**
-     * Given a number of threads containing analysers, generate reports as PDF and return these as a list.
-     *
-     * @param analysers the analysers
-     * @return the pdf reports
-     */
-    List<ByteArrayOutputStream> getPdfStreamsFromAnalysers(List<TreeAnalyser> analysers) {
-        List<ByteArrayOutputStream> pdfStreams = new ArrayList<>();
-        analysers.forEach(analyser -> {
-            try {
-                pdfStreams.add(analyser.generatePdfReport());
-            } catch (PdfGenerationException p) {
-                System.err.println("Error generating pdf for: " + analyser.getAnalysisName());
-            }
-        });
-        return pdfStreams;
+        return pdfs;
     }
 
     /**

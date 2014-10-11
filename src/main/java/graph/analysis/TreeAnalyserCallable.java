@@ -1,7 +1,9 @@
 package graph.analysis;
 
 import exceptions.AnalysisException;
+import exceptions.PdfGenerationException;
 
+import java.io.ByteArrayOutputStream;
 import java.util.concurrent.Callable;
 
 /**
@@ -10,7 +12,7 @@ import java.util.concurrent.Callable;
  * Simple runnable class which wraps around a tree analyser, allowing analyses to
  * be executed in parallel without necessitating this in the tree analyser type hierarchy.
  */
-public class TreeAnalyserCallable implements Callable<Void> {
+public class TreeAnalyserCallable implements Callable<ByteArrayOutputStream> {
 
     private final TreeAnalyser analyser;
 
@@ -22,20 +24,15 @@ public class TreeAnalyserCallable implements Callable<Void> {
         this.analyser = analyser;
     }
 
-    /**
-     * Get the analyser this thread is running.
-     * @return the analyser
-     */
-    public TreeAnalyser getAnalyser() {
-        return analyser;
-    }
-
     @Override
-    public Void call() {
+    public ByteArrayOutputStream call() {
         try {
             analyser.doAnalyse();
+            return analyser.generatePdfReport();
         } catch (AnalysisException e) {
-            e.printStackTrace();
+            System.err.println("Error analysing: " + analyser.getAnalysisName() + "skipping..");
+        } catch (PdfGenerationException e) {
+            System.err.println("Error generating PDF for: " + analyser.getAnalysisName() + "skipping..");
         }
         return null;
     }
