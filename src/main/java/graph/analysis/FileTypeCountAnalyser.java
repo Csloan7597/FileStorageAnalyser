@@ -26,9 +26,9 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
     private List<String> paths;
 
     private final Map<String, Integer> fileTypeCounts = new HashMap<>();
-    private final String name = "File Type Count Analysis";
-    private final String desc = "Counts how many files of each type are in the given filesystem";
-    private final String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
+    private static final String name = "File Type Count Analysis";
+    private static final String desc = "Counts how many files of each type are in the given filesystem";
+    private static final String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
 
     public FileTypeCountAnalyser(List<FileTreeNode> tree, List<String> paths) {
         super(tree, paths);
@@ -68,9 +68,7 @@ public class FileTypeCountAnalyser extends TreeAnalyser {
                 fileTypeCounts.put(n.getFileType(), fileTypeCounts.get(n.getFileType()) + 1);
             }
 
-            if (n.isDirectory()) {
-                n.getChildren().forEach(tq::add);
-            }
+            if (n.isDirectory()) { n.getChildren().forEach(tq::add); }
         }
     }
 

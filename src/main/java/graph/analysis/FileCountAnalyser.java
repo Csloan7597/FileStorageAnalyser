@@ -29,10 +29,9 @@ public class FileCountAnalyser extends TreeAnalyser {
     private Map<String, Integer> fileCounts = new HashMap<>();
     private List<String> paths;
 
-    private final String name = "File Count Analysis";
-    private final String desc = "Counts how many files (not folders) are in the given filesystem";
-
-    private final String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
+    private static final String name = "File Count Analysis";
+    private static final String desc = "Counts how many files (not folders) are in the given filesystem";
+    private static final String reportTitleAsHtml = "Title: <b>%s</b>    Path: <i>%s</i>.<br/><br/> Description: <i> %s. </i><br/>";
 
     public FileCountAnalyser(List<FileTreeNode> tree, List<String> paths) {
         super(tree, paths);
